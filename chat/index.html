@@ -203,16 +203,25 @@
             appId: "1:363051075501:web:3ed9f67c5b46badce34324"
         };
 
-        // API Key e Modelo da Groq para testes diretos no cliente
+        // Credenciais da Groq solicitadas para teste
         const GROQ_API_KEY = "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";
         const DEFAULT_MODEL = "openai/gpt-oss-20b";
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Obtém o parâmetro da URL (ex: ?ai=manasi)
+        // Tratamento e limpeza segura do parâmetro da URL (slug)
         const urlParams = new URLSearchParams(window.location.search);
-        const aiSlug = urlParams.get('ai');
+        let aiSlug = urlParams.get('ai');
+
+        if (aiSlug) {
+            if (aiSlug.includes('?ai=')) {
+                const parts = aiSlug.split('?ai=');
+                aiSlug = parts[parts.length - 1];
+            }
+            // Remove caracteres inválidos para caminhos do Firebase (. , # $ [ ]) e barras extras
+            aiSlug = aiSlug.replace(/[.#$[\]]/g, '').replace(/\/+$/, '').trim();
+        }
 
         let assistantData = null;
         let messageHistory = [];
@@ -221,7 +230,7 @@
             const container = document.getElementById('chatContainer');
 
             if (!aiSlug) {
-                container.innerHTML = `<div class="loading-state">Nenhuma IA especificada na URL. Adicione ?ai=seu-slug</div>`;
+                container.innerHTML = `<div class="loading-state">Nenhuma IA especificada na URL. Use o formato: ?ai=nome-da-ia</div>`;
                 return;
             }
 
@@ -231,7 +240,7 @@
                 const snapshot = await get(aiRef);
 
                 if (!snapshot.exists()) {
-                    container.innerHTML = `<div class="loading-state">Assistente não encontrado no banco de dados.</div>`;
+                    container.innerHTML = `<div class="loading-state">Assistente "${aiSlug}" não encontrado no banco de dados.</div>`;
                     return;
                 }
 
