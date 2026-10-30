@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">FocoPrime - Assistente IA</title>
+    <!-- Google Fonts: DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    <!-- Flaticon UI Icons CDN -->
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.1.0/uicons-regular-rounded/css/uicons-regular-rounded.css">
+    
+    <style>
+        :root {
+            --font-main: 'DM Sans', sans-serif;
+            --bg-app: #f8fafc;
+            --bg-surface: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 680px;
+            height: 100vh;
+            background: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 768px) {
+            .chat-container {
+                height: 85vh;
+                border-radius: 16px;
+                border: 1px solid var(--border-color);
+            }
+        }
+
+        /* Chat Header */
+        .chat-header {
+            padding: 16px 20px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .chat-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-app);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 18px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-info h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .chat-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Messages Area */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #fafafa;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background: var(--bg-surface);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-top-left-radius: 4px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: #ffffff;
+            border-top-right-radius: 4px;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 16px 20px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-app);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary);
+            background: var(--bg-surface);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+            font-size: 16px;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="loading-state" id="loadingState">Carregando assistente inteligente...</div>
+    </div>
+
+    <!-- Script para carregar dados do Firebase e gerenciar o chat -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwj0vcsUbdFDwFLt3xfOHCC--OhpF6nXs",
+            authDomain: "focoplataforms.firebaseapp.com",
+            databaseURL: "https://focoplataforms-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "focoplataforms",
+            storageBucket: "focoplataforms.firebasestorage.app",
+            messagingSenderId: "363051075501",
+            appId: "1:363051075501:web:3ed9f67c5b46badce34324"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Pega o slug da IA na URL (ex: ?ai=atendente-loja)
+        const urlParams = new URLSearchParams(window.location.search);
+        const aiSlug = urlParams.get('ai');
+
+        let assistantData = null;
+        let messageHistory = [];
+
+        async function initChat() {
+            const container = document.getElementById('chatContainer');
+
+            if (!aiSlug) {
+                container.innerHTML = `<div class="loading-state">Nenhuma Inteligência Artificial especificada na URL.</div>`;
+                return;
+            }
+
+            try {
+                // Busca os dados da IA no Firebase RTDB
+                const aiRef = ref(db, 'assistants/' + aiSlug);
+                const snapshot = await get(aiRef);
+
+                if (!snapshot.exists()) {
+                    container.innerHTML = `<div class="loading-state">Assistente não encontrado ou desativado.</div>`;
+                    return;
+                }
+
+                assistantData = snapshot.val();
+
+                // Define cores e título personalizados
+                if (assistantData.themeColor) {
+                    document.documentElement.style.setProperty('--primary', assistantData.themeColor);
+                }
+                document.getElementById('pageTitle').textContent = assistantData.name + ' - FocoPrime AI';
+
+                // Monta a estrutura visual do chat
+                container.innerHTML = `
+                    <div class="chat-header">
+                        <img src="${assistantData.logoUrl}" alt="Logo" class="chat-avatar" onerror="this.outerHTML='<div class=\'chat-avatar\'>${assistantData.name.charAt(0)}</div>'">
+                        <div class="chat-info">
+                            <h2>${assistantData.name}</h2>
+                            <p>${assistantData.description || 'Assistente Inteligente Online'}</p>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">${assistantData.welcomeMessage || 'Olá! Como posso ajudar você hoje?'}</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="userInput" class="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+                        <button type="button" id="sendBtn" class="send-btn">
+                            <i class="fi fi-rr-paper-plane"></i>
+                        </button>
+                    </div>
+                `;
+
+                // Inicializa o histórico de mensagens com o system prompt da IA
+                messageHistory.push({
+                    role: "system",
+                    content: assistantData.systemPrompt
+                });
+                if (assistantData.welcomeMessage) {
+                    messageHistory.push({
+                        role: "assistant",
+                        content: assistantData.welcomeMessage
+                    });
+                }
+
+                // Eventos de envio
+                const input = document.getElementById('userInput');
+                const sendBtn = document.getElementById('sendBtn');
+
+                sendBtn.addEventListener('click', sendMessage);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = `<div class="loading-state">Erro ao carregar o assistente. Tente novamente mais tarde.</div>`;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const messagesContainer = document.getElementById('chatMessages');
+
+            // Adiciona a mensagem do usuário na UI
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'message user';
+            userMsgDiv.textContent = text;
+            messagesContainer.appendChild(userMsgDiv);
+
+            input.value = '';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            messageHistory.push({ role: "user", content: text });
+
+            // Indicador de digitação
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.textContent = 'Digitando...';
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                // Chama a API Proxy segura no servidor
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: assistantData.model || 'llama-3-70b',
+                        messages: messageHistory
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById('typingIndicator').remove();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const aiReply = data.reply;
+                messageHistory.push({ role: "assistant", content: aiReply });
+
+                // Exibe a resposta da IA
+                const aiMsgDiv = document.createElement('div');
+                aiMsgDiv.className = 'message ai';
+                aiMsgDiv.textContent = aiReply;
+                messagesContainer.appendChild(aiMsgDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            } catch (error) {
+                console.error(error);
+                if (document.getElementById('typingIndicator')) {
+                    document.getElementById('typingIndicator').remove();
+                }
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message ai';
+                errorDiv.style.color = '#ef4444';
+                errorDiv.textContent = 'Desculpe, ocorreu um erro ao processar sua resposta.';
+                messagesContainer.appendChild(errorDiv);
+            }
+        }
+
+        initChat();
+    </script>
+</body>
+</html>
