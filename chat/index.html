@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="pageTitle">FocoPrime - Assistente IA</title>
+    <!-- Título e descrição padrão que serão substituídos dinamicamente -->
+    <title id="pageTitle">Assistente IA</title>
+    <meta id="pageDescription" name="description" content="Assistente inteligente online.">
+    
+    <!-- Favicon dinâmico -->
+    <link id="pageFavicon" rel="icon" type="image/x-icon" href="https://placehold.co/32x32/6366f1/ffffff?text=AI">
+
     <!-- Google Fonts: DM Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,7 +209,7 @@
             appId: "1:363051075501:web:3ed9f67c5b46badce34324"
         };
 
-        // Credenciais da Groq solicitadas para teste
+        // Credenciais da Groq para teste direto no cliente
         const GROQ_API_KEY = "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";
         const DEFAULT_MODEL = "openai/gpt-oss-20b";
 
@@ -219,7 +225,6 @@
                 const parts = aiSlug.split('?ai=');
                 aiSlug = parts[parts.length - 1];
             }
-            // Remove caracteres inválidos para caminhos do Firebase (. , # $ [ ]) e barras extras
             aiSlug = aiSlug.replace(/[.#$[\]]/g, '').replace(/\/+$/, '').trim();
         }
 
@@ -246,11 +251,25 @@
 
                 assistantData = snapshot.val();
 
+                // 1. Define o Título da Página com o Nome da IA
+                if (assistantData.name) {
+                    document.getElementById('pageTitle').textContent = assistantData.name;
+                }
+
+                // 2. Define a Descrição da Página (Meta Description)
+                if (assistantData.description) {
+                    document.getElementById('pageDescription').setAttribute('content', assistantData.description);
+                }
+
+                // 3. Define o Logótipo como Favicon da Aba
+                if (assistantData.logoUrl) {
+                    document.getElementById('pageFavicon').setAttribute('href', assistantData.logoUrl);
+                }
+
                 // Aplica cor de tema personalizada se existir
                 if (assistantData.themeColor) {
                     document.documentElement.style.setProperty('--primary', assistantData.themeColor);
                 }
-                document.getElementById('pageTitle').textContent = (assistantData.name || 'Assistente') + ' - FocoPrime AI';
 
                 // Renderiza o layout do Chat
                 container.innerHTML = `
