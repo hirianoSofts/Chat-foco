@@ -78,7 +78,6 @@ export default function PublicChat({ error, assistant }) {
         setLoading(true);
 
         try {
-            // Prepara o histórico incluindo o system prompt
             const apiMessages = [
                 { role: 'system', content: assistant.systemPrompt || 'Você é um assistente útil.' },
                 ...newMessages
